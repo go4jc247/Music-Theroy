@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+<title>John's Music Theory App v3.7</title>
+<style>
+:root{
+  --bg:#f7f0e4; --panel:#fffaf2; --panel2:#fff6ea; --line:#dfcfb3; --text:#3a2e1f; --muted:#8a755d;
+  --accent:#6fb8ff; --accent2:#d89a3d; --root:#ff6f86; --chord:#ffab73; --good:#74c99a;
+  --whiteKey:#fffdf8; --blackKey:#26221d;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:linear-gradient(180deg,#fffaf2,#f7f0e4 55%,#f2e7d6);color:var(--text)}
+.wrap{max-width:1500px;margin:0 auto;padding:18px}
+h1,h2,h3{margin:.2rem 0 .7rem} .sub{color:var(--muted);margin:0 0 1rem}
+.panel{background:rgba(255,250,242,.98);border:1px solid var(--line);border-radius:18px;padding:14px 16px;box-shadow:0 8px 24px rgba(112,84,38,.10);margin-bottom:14px}
+.control-grid{display:grid;grid-template-columns:repeat(7,minmax(120px,1fr));gap:10px;align-items:end}
+@media (max-width:1050px){.control-grid{grid-template-columns:repeat(3,minmax(120px,1fr))}}
+@media (max-width:700px){.control-grid{grid-template-columns:repeat(2,minmax(120px,1fr))}}
+label{display:block;font-size:.85rem;color:var(--muted);margin:0 0 6px}
+select,button,input{width:100%;background:#fffdf8;color:var(--text);border:1px solid #cbb999;border-radius:12px;padding:11px 12px;font-size:1rem}
+button{cursor:pointer}
+button:hover{filter:brightness(1.06)}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+@media (max-width:900px){.summary{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:12px}
+.stat .k{font-size:.78rem;color:var(--muted)} .stat .v{font-size:1.15rem;font-weight:700;margin-top:5px}
+.scale-strip{display:flex;flex-wrap:wrap;gap:10px}
+.note-chip{min-width:64px;text-align:center;background:#fff8ef;border:1px solid #d7c3a0;border-radius:14px;padding:10px 10px}
+.note-chip .deg{font-size:.78rem;color:var(--muted)} .note-chip .note{font-size:1.22rem;font-weight:700}
+.grid2{display:grid;grid-template-columns:1.3fr 1fr;gap:14px}
+@media (max-width:1100px){.grid2{grid-template-columns:1fr}}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+@media (max-width:1100px){.grid3{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:.95rem}
+th,td{border-bottom:1px solid #e5d7bf;padding:9px 8px;text-align:left;vertical-align:top}
+th{color:#4c3c29;background:#f5ead7;position:sticky;top:0}
+tr:hover td{background:#fff4e4} tr.selected td{background:#fbe8cf}
+.small{font-size:.88rem;color:var(--muted)} .roman{font-weight:700} .quality{color:var(--accent2);font-weight:700}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:.9rem;color:var(--muted);margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:6px}.dot{width:12px;height:12px;border-radius:50%;display:inline-block}
+.dot.scale{background:var(--accent)} .dot.chord{background:var(--chord)} .dot.root{background:var(--root)}
+.keyboard-wrap{overflow-x:auto;padding-bottom:6px}
+.keyboard{position:relative;height:252px;min-width:1200px;user-select:none}
+.white-key{position:absolute;top:0;width:48px;height:250px;background:var(--whiteKey);border:1px solid #bdb8b2;border-radius:0 0 8px 8px;color:#111;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:8px 4px;cursor:pointer;box-shadow:inset 0 -10px 18px rgba(0,0,0,.06)}
+.white-key .name{font-weight:700;font-size:.94rem;line-height:1}.white-key .midi{font-size:.72rem;color:#333;opacity:.85;margin-top:2px}
+.black-key{position:absolute;top:0;width:30px;height:155px;background:linear-gradient(180deg,#2a2a2a,#0c0c0c);border:1px solid #000;border-radius:0 0 6px 6px;color:#fff;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:6px 2px;cursor:pointer;z-index:3;box-shadow:0 6px 12px rgba(0,0,0,.35)}
+.black-key .name{font-weight:700;font-size:.75rem;line-height:1;text-align:center}.black-key .midi{font-size:.6rem;opacity:.85;margin-top:2px}
+.white-key.scale-tone,.black-key.scale-tone{box-shadow:inset 0 -18px 0 rgba(124,196,255,.45)}
+.white-key.chord-tone,.black-key.chord-tone{box-shadow:inset 0 -42px 0 rgba(255,159,110,.55)}
+.white-key.root-tone,.black-key.root-tone{box-shadow:inset 0 -68px 0 rgba(255,95,122,.68)}
+.white-key.scale-tone.chord-tone,.black-key.scale-tone.chord-tone{outline:2px solid rgba(255,255,255,.45)}
+.white-key.playing,.black-key.playing{transform:translateY(2px);filter:brightness(1.08)}
+.extension-chips,.stack-notes{display:flex;flex-wrap:wrap;gap:8px}
+.tag{padding:8px 10px;border-radius:999px;background:#fff8ef;border:1px solid #d9c7aa}
+.fretboard-wrap{overflow:auto;padding:10px 0 4px}
+.fretboard{
+  display:grid;gap:0;min-width:1800px;position:relative;padding:12px 28px 10px 14px;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.08),rgba(0,0,0,.18)),
+    linear-gradient(90deg,#7f5933 0%,#976942 12%,#845a35 28%,#a67647 45%,#825933 61%,#986a41 78%,#7b552f 100%);
+  border:1px solid rgba(255,255,255,.14);border-radius:20px;
+  box-shadow:inset 0 2px 18px rgba(255,255,255,.08), inset 0 -10px 24px rgba(0,0,0,.28), 0 14px 34px rgba(0,0,0,.2)
+}
+.fret-header,.string{display:grid;gap:0;align-items:center}
+.fret-header{margin-bottom:8px}
+.open-label,.fret-num{min-height:34px;display:flex;align-items:center;justify-content:center;font-weight:700}
+.open-label{
+  color:#fff;background:linear-gradient(180deg,#1d2233,#0d1324);border:1px solid rgba(255,255,255,.14);
+  border-radius:12px;margin-right:8px;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)
+}
+.open-label small{display:block;font-size:.72rem;opacity:.72;font-weight:600;line-height:1}
+.fret-num{color:#f2ddbc;background:transparent;font-size:.95rem;letter-spacing:.02em}
+.string{position:relative;min-height:44px}
+.string::before{
+  content:'';position:absolute;left:92px;right:0;top:50%;transform:translateY(-50%);height:var(--gauge);border-radius:999px;
+  background:linear-gradient(180deg,#ffffff 0%,#d8dce1 32%,#8f98a1 52%,#fafafa 78%,#c1c7ce 100%);
+  box-shadow:0 1px 0 rgba(255,255,255,.62),0 1px 3px rgba(0,0,0,.36);opacity:.98;pointer-events:none;z-index:1
+}
+.fret-cell{
+  position:relative;height:44px;display:flex;align-items:center;justify-content:center;
+  border-right:4px solid rgba(238,240,242,.88);
+  background:linear-gradient(90deg,rgba(255,255,255,.03),rgba(0,0,0,.08) 55%,rgba(255,255,255,.02));
+  overflow:visible;z-index:2
+}
+.fret-cell:first-of-type{border-left:8px solid #e8d6b1}
+.fret-cell.tail{border-right:none;background:linear-gradient(90deg,rgba(0,0,0,.06),rgba(255,255,255,.02))}
+.fret-cell::after{
+  content:'';position:absolute;left:0;right:0;top:0;bottom:0;
+  background:linear-gradient(180deg,rgba(255,255,255,.05),transparent 18%,transparent 82%,rgba(0,0,0,.14));
+  pointer-events:none;z-index:0
+}
+.fret-cell .inlay{
+  position:absolute;width:10px;height:10px;border-radius:50%;left:50%;transform:translateX(-50%);
+  background:rgba(244,238,228,.58);box-shadow:inset 0 1px 2px rgba(255,255,255,.45),0 1px 2px rgba(0,0,0,.22);z-index:0
+}
+.fret-cell.double .inlay.top{top:7px}.fret-cell.double .inlay.bottom{bottom:7px}.fret-cell.single .inlay{top:50%;transform:translate(-50%,-50%)}
+.note-marker{
+  position:relative;z-index:2;width:28px;height:28px;border-radius:50%;border:0;
+  background:rgba(251,251,248,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:#161616;cursor:pointer;box-shadow:0 1px 0 rgba(255,255,255,.96),0 4px 10px rgba(0,0,0,.28);
+  user-select:none;-webkit-tap-highlight-color:transparent;transition:transform .08s ease, filter .08s ease, box-shadow .08s ease
+}
+.note-marker .name{font-size:.63rem;font-weight:900;line-height:1}
+.note-marker .oct{font-size:.45rem;opacity:.8;margin-top:0px}
+.note-marker.scale{background:#f4f8ff;outline:2px solid #5fa4f2}
+.note-marker.chord{background:#fff3ea;outline:2px solid #ff9f6e}
+.note-marker.root{background:#ffe9ee;outline:2px solid #ff5f7a}
+.note-marker.playing{transform:translateY(1px) scale(.96);filter:brightness(1.05);box-shadow:0 1px 0 rgba(255,255,255,.96),0 2px 6px rgba(0,0,0,.22)}
+tr.clickable td{cursor:pointer}
+tr.clickable:hover td{background:#fff1de}
+.play-mini{background:#fff7ea;border:1px solid #d4bd96;color:#5a4428;border-radius:999px;padding:6px 10px;font-size:.82rem;cursor:pointer;display:inline-block}
+.footer-note.footer-note{font-size:.88rem;color:var(--muted)}
+
+.tabbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.tabbtn{width:auto;padding:10px 16px;border-radius:999px;background:#fff7ea;border:1px solid #d2bea0}
+.tabbtn.active{background:#fbe8cf;border-color:#c9a36a}
+.app-page{display:none}
+.app-page.active{display:block}
+.chart-lite{overflow:auto}
+.chart-lite table{font-size:1rem}
+.chart-lite th,.chart-lite td{text-align:center;white-space:nowrap}
+.chart-lite .rowhead{text-align:left;font-weight:700;color:#4c3c29;background:#f5ead7}
+.clean-stack{display:flex;flex-direction:column;gap:14px}
+.inline-check{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:.82rem;margin:6px 0 0}
+.inline-check input{width:auto}
+.section-tight h2{margin-bottom:.35rem}
+.note-chip.root{outline:2px solid var(--root)}
+.white-key.disabled,.black-key.disabled{opacity:.35;filter:saturate(.35);cursor:not-allowed}
+.white-key.selected-note,.black-key.selected-note{box-shadow:inset 0 0 0 4px #ffe082, 0 0 0 2px rgba(255,224,130,.35)}
+.scale-topbar{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap}
+.help-toggle{width:auto;min-width:34px;padding:6px 10px;border-radius:999px;background:#fff7ea;border:1px solid #d6c29f;font-weight:700;line-height:1}
+.help-pop{display:none;margin-top:8px;padding:10px 12px;border:1px solid #e0cfb3;border-radius:12px;background:#fff7ea;color:#6e5a43;font-size:.86rem}
+.help-pop.show{display:block}
+.mini-toggle-row{display:flex;justify-content:flex-end;align-items:center;margin:-2px 0 8px}
+.mini-toggle-row .inline-check{margin:0;font-size:.78rem}
+#pageScale .small,#pageScale .footer-note{display:none}
+#pageScale .panel{background:rgba(255,251,245,.98)}
+.note-marker.selected-note{outline:3px solid #ffe082!important;box-shadow:0 0 0 2px rgba(255,224,130,.22), 0 3px 8px rgba(0,0,0,.28)}
+
+
+.tabbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.tabbtn{width:auto;padding:10px 16px;border-radius:999px}.tabbtn.printbtn{margin-left:auto;background:#eaf2ff;border-color:#97b6ea}
+.app-page{display:none}.app-page.active{display:block}
+.print-sheet-wrap{background:transparent;border:none;border-radius:0;padding:0;overflow:auto;position:relative}
+.preview-fit{transform-origin:top left}
+.sheet-page{--sheet-width:816;--sheet-height:1056;width:calc(var(--sheet-width) * 1px);min-height:calc(var(--sheet-height) * 1px);margin:0 auto;background:#ececec;padding:8px 4px;border-radius:0;position:relative}
+.sheet-adjust{position:absolute;right:6px;top:6px;z-index:15;display:flex;gap:6px;background:rgba(255,255,255,.92);border:1px solid #bfbfbf;padding:4px 6px;font:11px/1 Arial,Helvetica,sans-serif;opacity:.6}
+.sheet-adjust label{display:flex;align-items:center;gap:4px;margin:0;color:#444}
+.sheet-adjust input{width:70px;padding:0;border:none;background:transparent}
+.sheet-toolbar{display:none}.sheet-toolbar label{font-size:.78rem;color:#6a6a6a}
+.sheet-toolbar select{width:140px;border-radius:6px;padding:8px 10px;background:#fff}.sheet-toolbar .tiny{font-size:.82rem;color:#777;margin-left:8px}
+.scale-sheet-grid{display:grid;gap:18px}
+.scale-top-chart{display:flex;align-items:flex-start;gap:8px}
+.sheet-key-wrap{position:relative;display:inline-block}
+.key-box{width:76px;border:3px solid #222;background:#9ec4ee;display:flex;flex-direction:column;justify-content:center;align-items:center;line-height:1.02;padding:5px 0;position:relative}
+.key-box .k1{font-size:14px;font-weight:700}.key-box .k2{font-size:28px;font-weight:800;margin-top:4px}
+.selector-box{cursor:pointer}.box-arrow{position:absolute;right:6px;bottom:3px;font-size:13px;font-weight:800;opacity:.85}
+.key-pop{display:none;position:absolute;left:0;top:100%;margin-top:6px;background:#fff;border:2px solid #222;padding:8px;z-index:40;min-width:168px;box-shadow:0 4px 12px rgba(0,0,0,.14)}
+.key-pop.show{display:block}
+.key-pop label{display:block;font-size:12px;font-weight:700;margin:0 0 3px;color:#333}
+.key-pop select{width:100%;margin-bottom:6px;border-radius:0;border:2px solid #222;padding:6px 8px;font-size:14px;background:#fff}
+.key-pop select:last-child{margin-bottom:0}
+.scale-table, .chord-sheet-table, .inv-sheet-table{border-collapse:collapse;font-family:Arial,Helvetica,sans-serif}
+.scale-table td{border:3px solid #111;text-align:center;padding:0}
+.scale-table .vscale{width:21px;background:#f3d3a8;font-size:12px;font-weight:700;letter-spacing:1px;writing-mode:vertical-rl;text-orientation:upright;padding:2px 0}
+.scale-table .num{width:82px;height:46px;background:#f5b446;font-size:25px;font-weight:800}
+.scale-table .num.alt{background:#f98f3f}
+.scale-table .note{width:82px;height:35px;background:#ebc89e;font-size:20px;font-weight:700}
+.chord-sheet{display:flex;align-items:flex-start;gap:0;margin-top:9px}
+.chord-left{display:flex;align-items:flex-start}
+.chord-label{width:92px;height:42px;margin-top:36px;border:3px solid #111;background:#7294ff;color:#111;font-weight:800;font-size:18px;display:flex;align-items:center;justify-content:center}
+.notes-vert{width:28px;height:136px;border:3px solid #111;border-right:none;background:#d9d8f0;display:flex;align-items:center;justify-content:center;font-weight:800;letter-spacing:2px;writing-mode:vertical-rl;text-orientation:upright}
+.chord-sheet-table td{border:3px solid #111;text-align:center;padding:0;width:95px}
+.chord-sheet-table .roman{height:36px;background:#d8d6f1;font-size:24px;font-weight:800;font-family:'Times New Roman',serif}
+.chord-sheet-table .chname{height:36px;background:#7393ff;font-size:18px;font-weight:800}
+.chord-sheet-table .nt{height:31px;background:#d9d8ef;font-size:18px;font-weight:700}
+.piano-print-wrap{margin-top:14px}
+.piano-print-svg text{font-family:Arial,Helvetica,sans-serif}
+.scale-page-shell,.inv-page-shell{background:transparent;border:none;border-radius:0;padding:0;box-shadow:none}
+
+#scaleSheetPage{--sheet-width:816;--sheet-height:1056}
+#inversionSheetPage{--sheet-width:816;--sheet-height:1056;padding:4px 2px 4px}
+.inv-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:4px}
+.inv-title{font-size:24px;font-family:Arial,Helvetica,sans-serif;font-weight:500;margin-top:0}
+.inv-sheet-table{width:100%;table-layout:fixed;height:1002px}
+.inv-sheet-table td,.inv-sheet-table th{border:2px solid #333;padding:0;background:#fff}
+.inv-sheet-table th{height:30px;background:#f6f6f6;font-size:14px;font-family:Arial,Helvetica,sans-serif;text-align:left;padding-left:2px;font-weight:700}
+.inv-sheet-table tbody tr{height:139px}
+.inv-sheet-table .degree-cell{width:44px;background:#efefef}
+.inv-sheet-table .mini-cell{width:auto;height:139px;background:#fff}
+.deg-badge{width:36px;height:36px;border-radius:50%;background:#000;color:#fff;font-weight:800;font-size:24px;display:flex;align-items:center;justify-content:center;margin:0 auto}
+.mini-svg text{font-family:Arial,Helvetica,sans-serif}
+.mini-cell-wrap{position:relative;width:100%;height:100%;overflow:hidden}
+.mini-caption{position:absolute;left:0;right:0;top:0;height:20px;background:#f2f1cf;border-bottom:2px solid #333;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500}
+.mini-cell-wrap.gray .mini-caption{background:#f3f3f3}
+.mini-svg{position:absolute;left:0;right:0;bottom:0;width:100%;height:calc(100% - 20px)}
+@page{size:letter portrait;margin:.2in}
+@media print{
+  html,body{background:#fff !important}
+  .wrap{max-width:none;padding:0}
+  .panel,.tabbar,.sheet-toolbar,.control-grid,.summary,.legend,.small,.sub,h1,#errorBanner,.footer-note,.grid2,.grid3,#pageFull,.printbtn-global,.sheet-adjust{display:none !important}
+  .app-page{display:none !important}
+  .app-page.active{display:block !important}
+  .print-sheet-wrap,.scale-page-shell,.inv-page-shell,.sheet-page{border:none !important;box-shadow:none !important;padding:0 !important;margin:0 !important;background:#fff !important;transform:none !important;min-height:auto !important}
+}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="panel">
+    <h1>John's Music Theory App v3.7</h1>
+    <p class="sub">Built from the logic of your Excel workbook - scale math, chord stacking, extensions, inversions, keyboard, and guitar mapping.</p>
+    <div class="tabbar">
+      <button class="tabbtn active" id="tabFullBtn">Full app</button>
+      <button class="tabbtn" id="tabScaleBtn">Scale</button>
+      <button class="tabbtn" id="tabInvBtn">Inversions</button>
+      <button class="tabbtn printbtn printbtn-global" id="printBtn">Print current tab</button>
+    </div>
+  </div>
+
+  <div id="pageFull" class="app-page active">
+  <div class="panel">
+    <div class="control-grid">
+      <div>
+        <label for="keySelect">Key</label>
+        <select id="keySelect"></select>
+      </div>
+      <div>
+        <label for="scaleSelect">Scale</label>
+        <select id="scaleSelect">
+          <option value="major">Major</option>
+          <option value="natural_minor">Natural Minor</option>
+          <option value="harmonic_minor">Harmonic Minor</option>
+        </select>
+      </div>
+      <div>
+        <label for="degreeSelect">Degree / chord root</label>
+        <select id="degreeSelect"></select>
+      </div>
+      <div>
+        <label for="stackSelect">Chord stack</label>
+        <select id="stackSelect">
+          <option value="3">Triad (1-3-5)</option>
+          <option value="4">Seventh (1-3-5-7)</option>
+          <option value="5">Ninth (1-3-5-7-9)</option>
+          <option value="6">Eleventh (1-3-5-7-9-11)</option>
+          <option value="7">Thirteenth (1-3-5-7-9-11-13)</option>
+        </select>
+      </div>
+      <div>
+        <label for="inversionSelect">Inversion</label>
+        <select id="inversionSelect"></select>
+      </div>
+      <div>
+        <label>&nbsp;</label>
+        <button id="playChordBtn">Play selected chord</button>
+      </div>
+      <div>
+        <label>&nbsp;</label>
+        <button id="playScaleBtn">Play scale</button>
+      </div>
+    </div>
+    <div class="summary">
+      <div class="stat"><div class="k">Scale notes</div><div class="v" id="scaleSummary"></div></div>
+      <div class="stat"><div class="k">Selected chord</div><div class="v" id="chordSummary"></div></div>
+      <div class="stat"><div class="k">Roman numeral</div><div class="v" id="romanSummary"></div></div>
+      <div class="stat"><div class="k">Sound engine</div><div class="v" id="spellingSummary">Piano keys + guitar strings</div></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Scale</h2>
+    <div class="scale-strip" id="scaleStrip"></div>
+    <div class="legend">
+      <span><i class="dot scale"></i> scale tone</span>
+      <span><i class="dot chord"></i> selected chord tone</span>
+      <span><i class="dot root"></i> selected chord root</span>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <h2>Diatonic chord chart</h2>
+      <div class="small">This is the workbook's chart logic turned into an interactive table. Click any row to focus that degree.</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Degree</th>
+            <th>Roman</th>
+            <th>Chord</th>
+            <th>Quality</th>
+            <th>Triad notes</th>
+            <th>7th</th>
+            <th>Play</th>
+          </tr>
+        </thead>
+        <tbody id="chordTableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>Chord detail and inversion</h2>
+      <div id="chordDetail"></div>
+      <h3 style="margin-top:14px">Extension stack</h3>
+      <div class="extension-chips" id="extensionChips"></div>
+      <h3 style="margin-top:14px">Notes in current inversion</h3>
+      <div class="stack-notes" id="inversionNotes"></div>
+      <p class="footer-note" style="margin-top:14px">I checked your original workbook again - there is no dedicated inversion sheet. The inversion page here is generated from the chord stacking math implied by your “Chords Upgrading” sheet.</p>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Playable piano keyboard</h2>
+    <div class="small">Three octaves, key-aware note spelling, octave numbering, scale highlighting, chord highlighting, and click-to-hear playback.</div>
+    <div class="keyboard-wrap"><div class="keyboard" id="keyboard"></div></div>
+  </div>
+
+  <div class="grid3">
+    <div class="panel">
+      <h2>Triad inversions</h2>
+      <table>
+        <thead><tr><th>Position</th><th>Notes</th></tr></thead>
+        <tbody id="triadInvBody"></tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <h2>Seventh inversions</h2>
+      <table>
+        <thead><tr><th>Position</th><th>Notes</th></tr></thead>
+        <tbody id="seventhInvBody"></tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <h2>Scale formulas</h2>
+      <table>
+        <thead><tr><th>Scale</th><th>Pattern</th><th>Cumulative</th></tr></thead>
+        <tbody>
+          <tr><td>Major</td><td>2 2 1 2 2 2 1</td><td>0 2 4 5 7 9 11</td></tr>
+          <tr><td>Natural Minor</td><td>2 1 2 2 1 2 2</td><td>0 2 3 5 7 8 10</td></tr>
+          <tr><td>Harmonic Minor</td><td>2 1 2 2 1 3 1</td><td>0 2 3 5 7 8 11</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Guitar fretboard</h2>
+    <div class="small">Inspired by your “Guiar” sheet. Open strings are standard tuning E A D G B E. The fretboard now uses a larger horizontal scale so the fret spacing is easier to judge visually, while keeping real guitar-style shrinking fret widths toward the right.</div>
+    <div class="fretboard-wrap"><div class="fretboard" id="fretboard"></div></div>
+  </div>
+  </div>
+
+  <div id="pageScale" class="app-page">
+    <div class="scale-page-shell">
+      <div class="print-sheet-wrap">
+        <div class="sheet-page scale-sheet-grid" id="scaleSheetPage"><div class="sheet-adjust"><label>W <input id="scaleSheetWidth" type="range" min="760" max="860" value="816"></label><label>H <input id="scaleSheetHeight" type="range" min="980" max="1120" value="1056"></label></div>
+          <div class="scale-top-chart">
+            <div class="sheet-key-wrap">
+              <button class="key-box selector-box" id="scaleKeyTrigger" type="button"><div class="k1">Key</div><div class="k2" id="sheetKeyText">C</div><span class="box-arrow">▾</span></button>
+              <div class="key-pop" id="scaleKeyPop">
+                <label for="scaleViewKeySelect">Key</label>
+                <select id="scaleViewKeySelect"></select>
+                <label for="scaleViewScaleSelect">Scale</label>
+                <select id="scaleViewScaleSelect">
+                  <option value="major">Major</option>
+                  <option value="natural_minor">Natural Minor</option>
+                  <option value="harmonic_minor">Harmonic Minor</option>
+                </select>
+              </div>
+            </div>
+            <table class="scale-table"><tbody id="scaleSheetTop"></tbody></table>
+          </div>
+          <div class="chord-sheet" id="scaleChordSheet"></div>
+          <div class="piano-print-wrap"><svg id="scalePrintKeyboard" class="piano-print-svg" width="980" height="330" viewBox="0 0 980 330"></svg></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="pageInversions" class="app-page">
+    <div class="inv-page-shell">
+      <div class="print-sheet-wrap">
+        <div class="sheet-page" id="inversionSheetPage"><div class="sheet-adjust"><label>W <input id="invSheetWidth" type="range" min="760" max="860" value="816"></label><label>H <input id="invSheetHeight" type="range" min="980" max="1120" value="1056"></label></div>
+          <div class="inv-header">
+            <div class="sheet-key-wrap">
+              <button class="key-box selector-box" id="invKeyTrigger" type="button"><div class="k2" id="invSheetKeyText">C</div><span class="box-arrow">▾</span></button>
+              <div class="key-pop" id="invKeyPop">
+                <label for="invViewKeySelect">Key</label>
+                <select id="invViewKeySelect"></select>
+                <label for="invViewScaleSelect">Scale</label>
+                <select id="invViewScaleSelect">
+                  <option value="major">Major</option>
+                  <option value="natural_minor">Natural Minor</option>
+                  <option value="harmonic_minor">Harmonic Minor</option>
+                </select>
+              </div>
+            </div>
+            <div class="inv-title">Chord Inversions</div>
+          </div>
+          <table class="inv-sheet-table"><thead><tr><th style="width:52px"></th><th>Root Position</th><th>1st Inversion</th><th>2nd Inversion</th></tr></thead><tbody id="invSheetBody"></tbody></table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const NATURAL_PC = {C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+const LETTERS = ['C','D','E','F','G','A','B'];
+const SHARP_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const FLAT_NAMES  = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+const SCALE_TYPES = {
+  major: {name:'Major', steps:[2,2,1,2,2,2,1], cum:[0,2,4,5,7,9,11]},
+  natural_minor: {name:'Natural Minor', steps:[2,1,2,2,1,2,2], cum:[0,2,3,5,7,8,10]},
+  harmonic_minor: {name:'Harmonic Minor', steps:[2,1,2,2,1,3,1], cum:[0,2,3,5,7,8,11]}
+};
+const KEY_OPTIONS = ['C','G','D','A','E','B','F#','C#','F','Bb','Eb','Ab','Db'];
+const OPEN_STRINGS = [40,45,50,55,59,64];
+const KEYBOARD_RANGE = {start:48,end:84};
+let audioCtx;
+let isBooting = true;
+
+const el = id => document.getElementById(id);
+const keySelect = el('keySelect');
+const scaleSelect = el('scaleSelect');
+const degreeSelect = el('degreeSelect');
+const stackSelect = el('stackSelect');
+const inversionSelect = el('inversionSelect');
+const tabFullBtn = el('tabFullBtn');
+const tabScaleBtn = el('tabScaleBtn');
+const tabInvBtn = el('tabInvBtn');
+const printBtn = el('printBtn');
+const pageFull = el('pageFull');
+const pageScale = el('pageScale');
+const pageInversions = el('pageInversions');
+const scaleViewKeySelect = el('scaleViewKeySelect');
+const invViewKeySelect = el('invViewKeySelect');
+const scaleViewScaleSelect = el('scaleViewScaleSelect');
+const invViewScaleSelect = el('invViewScaleSelect');
+const allowChromaticToggle = el('allowChromaticToggle');
+let selectedPc = null;
+
+document.querySelectorAll('.help-toggle').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const id = btn.getAttribute('data-help');
+    const pop = document.getElementById(id);
+    if(pop) pop.classList.toggle('show');
+  });
+});
+
+
+function addErrorBanner(msg){
+  let b = document.getElementById('errorBanner');
+  if(!b){
+    b = document.createElement('div');
+    b.id = 'errorBanner';
+    b.style.cssText = 'position:sticky;top:0;z-index:9999;background:#651b2a;color:#fff;padding:10px 14px;border-bottom:1px solid #ff8ba0;font:14px system-ui';
+    document.body.prepend(b);
+  }
+  b.textContent = msg;
+}
+window.addEventListener('error', e => addErrorBanner('App error: ' + e.message));
+
+KEY_OPTIONS.forEach(k => { keySelect.add(new Option(k,k)); scaleViewKeySelect.add(new Option(k,k)); invViewKeySelect.add(new Option(k,k)); });
+keySelect.value = 'C';
+scaleViewKeySelect.value = 'C';
+invViewKeySelect.value = 'C';
+scaleViewScaleSelect.value = 'major';
+invViewScaleSelect.value = 'major';
+
+function parseNoteName(note){
+  const m = note.match(/^([A-G])([#b]{0,2})$/);
+  if(!m) throw new Error('Bad note ' + note);
+  let pc = NATURAL_PC[m[1]];
+  for(const ch of m[2]) pc += ch === '#' ? 1 : -1;
+  return {letter:m[1], accidental:m[2], pc:((pc % 12) + 12) % 12};
+}
+function accidentalString(n){
+  if(n === 0) return '';
+  if(n > 0) return '#'.repeat(n);
+  return 'b'.repeat(-n);
+}
+function normalizeDiff(d){
+  while(d > 6) d -= 12;
+  while(d < -6) d += 12;
+  return d;
+}
+function defaultChromaticName(pc, keyName){
+  const preferFlats = ['F','Bb','Eb','Ab','Db'].includes(keyName);
+  return preferFlats ? FLAT_NAMES[pc] : SHARP_NAMES[pc];
+}
+function buildScale(rootName, scaleType){
+  const root = parseNoteName(rootName);
+  const cum = SCALE_TYPES[scaleType].cum;
+  const rootLetterIndex = LETTERS.indexOf(root.letter);
+  return cum.map((offset, i) => {
+    const targetPc = (root.pc + offset) % 12;
+    const letter = LETTERS[(rootLetterIndex + i) % 7];
+    const naturalPc = NATURAL_PC[letter];
+    const diff = normalizeDiff(targetPc - naturalPc);
+    return {degree:i+1, pc:targetPc, letter, diff, name:letter + accidentalString(diff)};
+  });
+}
+function romanForDegree(i, triadQuality){
+  const base = ['I','II','III','IV','V','VI','VII'][i];
+  return (triadQuality === 'major' || triadQuality === 'augmented') ? base : base.toLowerCase();
+}
+function qualityFromPcs(rootPc, pcs){
+  const ints = pcs.map(pc => (pc - rootPc + 12) % 12);
+  const tri = ints.slice(0,3).join(',');
+  const triMap = {'0,4,7':'major','0,3,7':'minor','0,3,6':'diminished','0,4,8':'augmented'};
+  const seventhMap = {'0,4,7,11':'maj7','0,4,7,10':'7','0,3,7,10':'m7','0,3,6,10':'m7b5','0,3,6,9':'dim7','0,4,8,10':'+7','0,4,8,11':'maj7#5'};
+  return {triad:triMap[tri] || 'other', seventh:seventhMap[ints.slice(0,4).join(',')] || ''};
+}
+function buildChord(scaleNotes, degreeIndex, stackSize){
+  const tones = [];
+  for(let i=0;i<stackSize;i++){
+    const idx = (degreeIndex + i * 2) % scaleNotes.length;
+    tones.push({...scaleNotes[idx], scaleIndex:idx, stepDegree:1 + i * 2});
+  }
+  const rootPc = tones[0].pc;
+  const q = qualityFromPcs(rootPc, tones.map(t => t.pc));
+  const nameSuffix = {major:'', minor:'m', diminished:'dim', augmented:'aug', other:''}[q.triad] ?? '';
+  let chordName = tones[0].name + nameSuffix;
+  if(stackSize >= 4){
+    const seventhSuffixMap = {maj7:'maj7','7':'7','m7':'m7','m7b5':'m7b5','dim7':'dim7','+7':'7#5','maj7#5':'maj7#5'};
+    chordName = tones[0].name + (seventhSuffixMap[q.seventh] || nameSuffix);
+  }
+  let roman = romanForDegree(degreeIndex, q.triad);
+  if(q.triad === 'diminished') roman += '°';
+  if(q.triad === 'augmented') roman += '+';
+  if(stackSize >= 4){
+    if(q.seventh === 'maj7') roman += 'maj7';
+    else if(q.seventh === '7' || q.seventh === 'm7') roman += '7';
+    else if(q.seventh === 'm7b5') roman += 'ø7';
+    else if(q.seventh === 'dim7') roman += '°7';
+    else if(q.seventh === 'maj7#5') roman += 'maj7#5';
+    else if(q.seventh === '+7') roman += '7#5';
+  }
+  return {degreeIndex, tones, rootPc, quality:q, chordName, roman};
+}
+function inversionName(i, len){
+  if(i === 0) return 'Root position';
+  if(len === 3) return ['1st inversion','2nd inversion'][i-1] || (i + 'th inversion');
+  if(len === 4) return ['1st inversion','2nd inversion','3rd inversion'][i-1] || (i + 'th inversion');
+  return i + ' rotation';
+}
+function applyInversion(chord, inversion){
+  return chord.tones.slice(inversion).concat(chord.tones.slice(0, inversion).map(t => ({...t, octaveShift:1})));
+}
+function midiForPcNearest(pc, target=60){
+  let best = target, bestDist = Infinity;
+  for(let midi=36;midi<=96;midi++){
+    if(midi % 12 === pc){
+      const d = Math.abs(midi - target);
+      if(d < bestDist){ best = midi; bestDist = d; }
+    }
+  }
+  return best;
+}
+function buildVoicedMidi(chordTones, base=60){
+  let prev = null;
+  return chordTones.map((t, idx) => {
+    let midi = midiForPcNearest(t.pc, idx === 0 ? base : prev + 4);
+    while(prev !== null && midi <= prev) midi += 12;
+    prev = midi;
+    return midi;
+  });
+}
+function getScaleChromaticLabels(scaleNotes, keyName){
+  const map = {};
+  scaleNotes.forEach(n => { map[n.pc] = n.name; });
+  for(let pc=0;pc<12;pc++) if(!map[pc]) map[pc] = defaultChromaticName(pc, keyName);
+  return map;
+}
+function midiToFreq(m){ return 440 * Math.pow(2, (m - 69) / 12); }
+function ensureAudio(){
+  if(!audioCtx){
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function makeReverb(ctx){
+  const seconds = 1.8;
+  const rate = ctx.sampleRate;
+  const length = Math.floor(rate * seconds);
+  const impulse = ctx.createBuffer(2, length, rate);
+  for(let ch=0; ch<2; ch++){
+    const data = impulse.getChannelData(ch);
+    for(let i=0; i<length; i++){
+      const t = i / length;
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 2.4);
+    }
+  }
+  const convolver = ctx.createConvolver();
+  convolver.buffer = impulse;
+  return convolver;
+}
+function pianoVoice(ctx, freq, now, dur=.9){
+  const out = ctx.createGain();
+  const dry = ctx.createGain();
+  const wet = ctx.createGain();
+  const filter = ctx.createBiquadFilter();
+  const reverb = makeReverb(ctx);
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(Math.min(5200, freq * 12), now);
+  filter.Q.value = 0.8;
+  dry.gain.value = 0.95;
+  wet.gain.value = 0.22;
+  out.gain.setValueAtTime(0.0001, now);
+  out.gain.exponentialRampToValueAtTime(0.32, now + 0.012);
+  out.gain.exponentialRampToValueAtTime(0.18, now + 0.12);
+  out.gain.exponentialRampToValueAtTime(0.0001, now + dur + 0.9);
+
+  const partials = [1, 2, 3, 4, 5, 6];
+  const gains =    [0.9,0.34,0.20,0.11,0.06,0.03];
+  partials.forEach((p, i) => {
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = i < 2 ? 'sine' : 'triangle';
+    osc.frequency.setValueAtTime(freq * p, now);
+    g.gain.setValueAtTime(gains[i], now);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0001, gains[i] * 0.5), now + 0.08 + i * 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + dur + 0.6);
+    osc.connect(g).connect(filter);
+    osc.start(now);
+    osc.stop(now + dur + 0.8);
+  });
+
+  const hammer = ctx.createBufferSource();
+  const noiseBuffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.03), ctx.sampleRate);
+  const nd = noiseBuffer.getChannelData(0);
+  for(let i=0;i<nd.length;i++) nd[i] = (Math.random() * 2 - 1) * (1 - i / nd.length);
+  hammer.buffer = noiseBuffer;
+  const hammerGain = ctx.createGain();
+  hammerGain.gain.setValueAtTime(0.06, now);
+  hammerGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
+  hammer.connect(hammerGain).connect(filter);
+  hammer.start(now);
+  hammer.stop(now + 0.04);
+
+  filter.connect(dry).connect(out);
+  filter.connect(reverb).connect(wet).connect(out);
+  out.connect(ctx.destination);
+}
+function guitarVoice(ctx, freq, now, dur=.9){
+  const out = ctx.createGain();
+  const filter = ctx.createBiquadFilter();
+  const body = ctx.createBiquadFilter();
+  const reverb = makeReverb(ctx);
+  const dry = ctx.createGain();
+  const wet = ctx.createGain();
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(Math.min(4200, freq * 9), now);
+  body.type = 'bandpass';
+  body.frequency.setValueAtTime(180, now);
+  body.Q.value = 0.7;
+  dry.gain.value = 0.95;
+  wet.gain.value = 0.15;
+  out.gain.setValueAtTime(0.0001, now);
+  out.gain.exponentialRampToValueAtTime(0.28, now + 0.005);
+  out.gain.exponentialRampToValueAtTime(0.16, now + 0.08);
+  out.gain.exponentialRampToValueAtTime(0.0001, now + dur + 0.55);
+
+  const partials = [1,2,3,4,5,6,7];
+  const gains = [0.9,0.28,0.18,0.10,0.06,0.04,0.025];
+  partials.forEach((p, i) => {
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = i === 0 ? 'triangle' : 'sine';
+    osc.frequency.setValueAtTime(freq * p, now);
+    g.gain.setValueAtTime(gains[i], now);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0001, gains[i] * 0.55), now + 0.03 + i * 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + dur + 0.35);
+    osc.connect(g).connect(filter);
+    osc.start(now);
+    osc.stop(now + dur + 0.45);
+  });
+
+  const pick = ctx.createBufferSource();
+  const pickBuffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.025), ctx.sampleRate);
+  const pd = pickBuffer.getChannelData(0);
+  for(let i=0;i<pd.length;i++) pd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / pd.length, 1.8);
+  pick.buffer = pickBuffer;
+  const pickGain = ctx.createGain();
+  pickGain.gain.setValueAtTime(0.08, now);
+  pickGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.02);
+  pick.connect(pickGain).connect(filter);
+  pick.start(now);
+  pick.stop(now + 0.03);
+
+  filter.connect(dry).connect(out);
+  filter.connect(body).connect(out);
+  filter.connect(reverb).connect(wet).connect(out);
+  out.connect(ctx.destination);
+}
+function playMidi(midi, when=0, dur=.65, instrument='piano'){
+  const ctx = ensureAudio();
+  const now = ctx.currentTime + when;
+  const freq = midiToFreq(midi);
+  if(instrument === 'guitar') guitarVoice(ctx, freq, now, dur);
+  else pianoVoice(ctx, freq, now, dur);
+}
+function flashKey(midi){
+  document.querySelectorAll('[data-midi="' + midi + '"]').forEach(node => {
+    node.classList.add('playing');
+    setTimeout(() => node.classList.remove('playing'), 180);
+  });
+}
+function playSequence(midis, spacing=.24, dur=.55, instrument='piano'){
+  midis.forEach((m, i) => {
+    playMidi(m, i * spacing, dur, instrument);
+    setTimeout(() => flashKey(m), i * spacing * 1000);
+  });
+}
+
+function getDegreeValue(scaleNotes){
+  let value = Number(degreeSelect.value || 0);
+  if(Number.isNaN(value)) value = 0;
+  if(value < 0) value = 0;
+  if(value > scaleNotes.length - 1) value = scaleNotes.length - 1;
+  return value;
+}
+function getInversionValue(stackSize){
+  let value = Number(inversionSelect.value || 0);
+  if(Number.isNaN(value)) value = 0;
+  const maxInv = Math.max(0, stackSize - 1);
+  if(value > maxInv) value = maxInv;
+  if(value < 0) value = 0;
+  return value;
+}
+function currentState(){
+  const key = keySelect.value;
+  const scaleType = scaleViewScaleSelect ? (scaleViewScaleSelect.value || scaleSelect.value) : scaleSelect.value;
+  const scaleNotes = buildScale(key, scaleType);
+  const degreeIndex = getDegreeValue(scaleNotes);
+  const stackSize = Number(stackSelect.value || 3);
+  const chord = buildChord(scaleNotes, degreeIndex, stackSize);
+  const inversion = getInversionValue(stackSize);
+  const chromaticLabels = getScaleChromaticLabels(scaleNotes, key);
+  return {key, scaleType, scaleNotes, degreeIndex, stackSize, chord, inversion, chromaticLabels};
+}
+
+function repopulateDegreeSelect(){
+  const scaleNotes = buildScale(keySelect.value, scaleSelect.value);
+  const keep = getDegreeValue(scaleNotes);
+  degreeSelect.innerHTML = '';
+  scaleNotes.forEach((n, i) => degreeSelect.add(new Option(n.degree + ' - ' + n.name, String(i))));
+  degreeSelect.value = String(keep);
+}
+function ordinal(n){ return n === 1 ? '1st' : n === 2 ? '2nd' : n === 3 ? '3rd' : n + 'th'; }
+function repopulateInversionSelect(){
+  const stack = Number(stackSelect.value || 3);
+  const maxInv = Math.max(0, stack - 1);
+  const keep = getInversionValue(stack);
+  inversionSelect.innerHTML = '';
+  for(let i=0;i<=maxInv;i++) inversionSelect.add(new Option(i === 0 ? 'Root position' : ordinal(i) + ' inversion', String(i)));
+  inversionSelect.value = String(Math.min(keep, maxInv));
+}
+
+
+function setPage(page){
+  const fullMode = page === 'full';
+  const scaleMode = page === 'scale';
+  const invMode = page === 'inversions';
+  pageFull.classList.toggle('active', fullMode);
+  pageScale.classList.toggle('active', scaleMode);
+  pageInversions.classList.toggle('active', invMode);
+  tabFullBtn.classList.toggle('active', fullMode);
+  tabScaleBtn.classList.toggle('active', scaleMode);
+  tabInvBtn.classList.toggle('active', invMode);
+}
+function currentScaleViewState(){
+  const key = scaleViewKeySelect.value || keySelect.value;
+  const scaleType = scaleSelect.value;
+  const scaleNotes = buildScale(key, scaleType);
+  const degreeIndex = 0;
+  const stackSize = 3;
+  const chord = buildChord(scaleNotes, degreeIndex, stackSize);
+  const inversion = 0;
+  const chromaticLabels = getScaleChromaticLabels(scaleNotes, key);
+  return {key, scaleType, scaleNotes, degreeIndex, stackSize, chord, inversion, chromaticLabels};
+}
+function currentInvViewState(){
+  const key = invViewKeySelect.value || keySelect.value;
+  const scaleType = invViewScaleSelect ? (invViewScaleSelect.value || scaleSelect.value) : scaleSelect.value;
+  const scaleNotes = buildScale(key, scaleType);
+  const degreeIndex = 0;
+  const stackSize = 3;
+  const chord = buildChord(scaleNotes, degreeIndex, stackSize);
+  const inversion = 0;
+  const chromaticLabels = getScaleChromaticLabels(scaleNotes, key);
+  return {key, scaleType, scaleNotes, degreeIndex, stackSize, chord, inversion, chromaticLabels};
+}
+function syncSelectedPc(pc){
+  selectedPc = pc;
+}
+function buildScaleChartRows(state){
+  const triads = state.scaleNotes.map((_, i) => buildChord(state.scaleNotes, i, 3));
+  return [
+    ['Scale degree', ...state.scaleNotes.map(n => n.degree)],
+    ['Scale note', ...state.scaleNotes.map((n,i) => i===0 ? '<strong>' + n.name + '</strong>' : n.name)],
+    ['Roman numeral', ...triads.map(ch => ch.roman.replace(/(maj7|7|ø7|°7|maj7#5|7#5)$/,''))],
+    ['Chord', ...triads.map(ch => ch.chordName)],
+    ['Chord tones', ...triads.map(ch => ch.tones.map(t => t.name).join(' - '))]
+  ];
+}
+function renderScaleChartLite(state){
+  const body = el('scaleChartLiteBody');
+  const rows = buildScaleChartRows(state);
+  body.innerHTML = rows.map((row, ridx) => '<tr>' + row.map((cell, cidx) => cidx === 0 ? '<td class="rowhead">' + cell + '</td>' : '<td>' + cell + '</td>').join('') + '</tr>').join('');
+}
+
+function renderScaleStrip(state){
+  el('scaleStrip').innerHTML = state.scaleNotes.map(n => '<div class="note-chip"><div class="deg">' + n.degree + '</div><div class="note">' + n.name + '</div></div>').join('');
+  el('scaleSummary').textContent = state.scaleNotes.map(n => n.name).join(' ');
+}
+function renderChordTable(state){
+  const body = el('chordTableBody');
+  body.innerHTML = '';
+  state.scaleNotes.forEach((note, i) => {
+    const triad = buildChord(state.scaleNotes, i, 3);
+    const seventh = buildChord(state.scaleNotes, i, 4);
+    const tr = document.createElement('tr');
+    if(i === state.degreeIndex) tr.classList.add('selected');
+    tr.classList.add('clickable');
+    tr.innerHTML = '<td>' + (i + 1) + '</td>' +
+      '<td class="roman">' + triad.roman.replace(/(maj7|7|ø7|°7|maj7#5|7#5)$/,'') + '</td>' +
+      '<td><strong>' + triad.chordName + '</strong></td>' +
+      '<td class="quality">' + triad.quality.triad + '</td>' +
+      '<td>' + triad.tones.map(t => t.name).join(' - ') + '</td>' +
+      '<td>' + seventh.chordName + ' = ' + seventh.tones.map(t => t.name).join(' - ') + '</td>' +
+      '<td><button class="play-mini" data-degree="' + i + '">Play</button></td>';
+    tr.addEventListener('click', () => {
+      degreeSelect.value = String(i);
+      renderAll();
+      const liveState = currentState();
+      const voiced = applyInversion(liveState.chord, liveState.inversion);
+      const midis = buildVoicedMidi(voiced, 55 + liveState.degreeIndex);
+      playChord(midis, 'piano');
+    });
+    tr.querySelector('.play-mini').addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      degreeSelect.value = String(i);
+      renderAll();
+      const liveState = currentState();
+      const voiced = applyInversion(liveState.chord, liveState.inversion);
+      const midis = buildVoicedMidi(voiced, 55 + i);
+      playSequence(midis, .16, .72, 'piano');
+    });
+    body.appendChild(tr);
+  });
+}
+function renderChordDetail(state){
+  const voiced = applyInversion(state.chord, state.inversion);
+  el('chordSummary').textContent = state.chord.chordName;
+  el('romanSummary').textContent = state.chord.roman;
+  el('chordDetail').innerHTML =
+    '<div class="stat" style="margin-top:10px"><div class="k">Selected degree</div><div class="v">' + (state.degreeIndex + 1) + ' - ' + state.scaleNotes[state.degreeIndex].name + '</div></div>' +
+    '<div class="stat" style="margin-top:10px"><div class="k">Chord quality</div><div class="v">' + (state.chord.quality.seventh || state.chord.quality.triad) + '</div></div>' +
+    '<div class="stat" style="margin-top:10px"><div class="k">Inversion</div><div class="v">' + inversionName(state.inversion, state.chord.tones.length) + '</div></div>';
+  el('extensionChips').innerHTML = state.chord.tones.map(t => '<span class="tag">' + t.stepDegree + ': ' + t.name + '</span>').join('');
+  el('inversionNotes').innerHTML = voiced.map((t, idx) => '<span class="tag">' + (idx === 0 ? 'Bass: ' : '') + t.name + '</span>').join('');
+}
+function renderInversionTables(state){
+  const triad = buildChord(state.scaleNotes, state.degreeIndex, 3);
+  const seventh = buildChord(state.scaleNotes, state.degreeIndex, 4);
+  el('triadInvBody').innerHTML = [0,1,2].map(i => '<tr><td>' + inversionName(i, 3) + '</td><td>' + applyInversion(triad, i).map(t => t.name).join(' - ') + '</td></tr>').join('');
+  el('seventhInvBody').innerHTML = [0,1,2,3].map(i => '<tr><td>' + inversionName(i, 4) + '</td><td>' + applyInversion(seventh, i).map(t => t.name).join(' - ') + '</td></tr>').join('');
+}
+function renderKeyboard(state, opts={}){
+  const node = typeof opts.target === 'string' ? el(opts.target) : (opts.target || el('keyboard'));
+  node.innerHTML = '';
+  const scalePcs = new Set(state.scaleNotes.map(n => n.pc));
+  const chordPcs = new Set(state.chord.tones.map(n => n.pc));
+  const rootPc = state.chord.tones[0].pc;
+  const labels = state.chromaticLabels;
+  const whitePcs = new Set([0,2,4,5,7,9,11]);
+  const whiteMidis = [];
+  for(let m=KEYBOARD_RANGE.start;m<=KEYBOARD_RANGE.end;m++) if(whitePcs.has(m % 12)) whiteMidis.push(m);
+  node.style.width = (whiteMidis.length * 48) + 'px';
+  let whiteIndex = 0;
+  const whitePositions = {};
+  const disableOut = !!opts.disableOutOfScale && !allowChromaticToggle.checked;
+  const instrument = opts.instrument || 'piano';
+  for(let m=KEYBOARD_RANGE.start;m<=KEYBOARD_RANGE.end;m++){
+    if(whitePcs.has(m % 12)){
+      const pc = m % 12;
+      const left = whiteIndex * 48;
+      whitePositions[m] = left;
+      const div = document.createElement('div');
+      div.className = 'white-key';
+      if(scalePcs.has(pc)) div.classList.add('scale-tone');
+      if(chordPcs.has(pc)) div.classList.add('chord-tone');
+      if(pc === rootPc) div.classList.add('root-tone');
+      if(selectedPc === pc) div.classList.add('selected-note');
+      if(disableOut && !scalePcs.has(pc)) div.classList.add('disabled');
+      div.dataset.midi = String(m);
+      div.style.left = left + 'px';
+      div.innerHTML = '<div class="name">' + labels[pc] + '</div><div class="midi">' + SHARP_NAMES[pc] + (Math.floor(m / 12) - 1) + '</div>';
+      div.addEventListener('click', () => {
+        if(disableOut && !scalePcs.has(pc)) return;
+        syncSelectedPc(pc);
+        playMidi(m, 0, .9, instrument);
+        flashKey(m);
+        renderAll();
+      });
+      node.appendChild(div);
+      whiteIndex++;
+    }
+  }
+  for(let m=KEYBOARD_RANGE.start;m<=KEYBOARD_RANGE.end;m++){
+    const pc = m % 12;
+    if(!whitePcs.has(pc)){
+      const baseLeft = whitePositions[m - 1];
+      if(baseLeft === undefined) continue;
+      const div = document.createElement('div');
+      div.className = 'black-key';
+      if(scalePcs.has(pc)) div.classList.add('scale-tone');
+      if(chordPcs.has(pc)) div.classList.add('chord-tone');
+      if(pc === rootPc) div.classList.add('root-tone');
+      if(selectedPc === pc) div.classList.add('selected-note');
+      if(disableOut && !scalePcs.has(pc)) div.classList.add('disabled');
+      div.dataset.midi = String(m);
+      div.style.left = (baseLeft + 33) + 'px';
+      div.innerHTML = '<div class="name">' + labels[pc] + '</div><div class="midi">' + (Math.floor(m / 12) - 1) + '</div>';
+      div.addEventListener('click', () => {
+        if(disableOut && !scalePcs.has(pc)) return;
+        syncSelectedPc(pc);
+        playMidi(m, 0, .9, instrument);
+        flashKey(m);
+        renderAll();
+      });
+      node.appendChild(div);
+    }
+  }
+}
+function renderFretboard(state, opts={}){
+  const board = typeof opts.target === 'string' ? el(opts.target) : (opts.target || el('fretboard'));
+  board.innerHTML = '';
+  const labels = state.chromaticLabels;
+  const scalePcs = new Set(state.scaleNotes.map(n => n.pc));
+  const chordPcs = new Set(state.chord.tones.map(n => n.pc));
+  const rootPc = state.chord.tones[0].pc;
+  const fretCount = 15;
+  const inlayFrets = new Set([3,5,7,9,12,15]);
+
+  const scaleLength = 25.5;
+  const distances = [0];
+  for(let f=1; f<=fretCount+1; f++) distances.push(scaleLength - (scaleLength / Math.pow(2, f / 12)));
+  const rawWidths = [];
+  for(let f=0; f<=fretCount; f++) rawWidths.push(distances[f+1] - distances[f]);
+  const pxPerInch = 92;
+  const fretWidths = rawWidths.map(w => Math.max(28, Math.round(w * pxPerInch)));
+  const labelCol = 82;
+  const extraTail = 220;
+  const gridCols = labelCol + 'px ' + fretWidths.map(w => w + 'px').join(' ') + ' ' + extraTail + 'px';
+  const disableOut = !!opts.disableOutOfScale && !allowChromaticToggle.checked;
+  const instrument = opts.instrument || 'guitar';
+
+  const header = document.createElement('div');
+  header.className = 'fret-header';
+  header.style.gridTemplateColumns = gridCols;
+  header.innerHTML = '<div class="open-label">Open / fret</div>' + Array.from({length:fretCount+1}, (_, f) => '<div class="fret-num">' + f + '</div>').join('') + '<div class="fret-num"></div>';
+  board.appendChild(header);
+
+  const reversed = [...OPEN_STRINGS].reverse();
+  reversed.forEach((openMidi, rowIndex) => {
+    const row = document.createElement('div');
+    row.className = 'string';
+    row.style.gridTemplateColumns = gridCols;
+    const openPc = openMidi % 12;
+    const stringNumber = rowIndex + 1;
+    const gauge = [1.25,1.05,0.9,0.75,0.62,0.5][rowIndex].toFixed(2) + 'px';
+    row.style.setProperty('--gauge', gauge);
+    row.innerHTML = '<div class="open-label"><div>' + labels[openPc] + (Math.floor(openMidi / 12) - 1) + '</div><small>S' + stringNumber + '</small></div>';
+
+    for(let fret=0; fret<=fretCount; fret++){
+      const midi = openMidi + fret;
+      const pc = midi % 12;
+      const c = document.createElement('div');
+      c.className = 'fret-cell';
+      const showInlay = inlayFrets.has(fret);
+      if(showInlay){
+        if(fret === 12){
+          c.classList.add('double');
+          c.innerHTML = '<div class="inlay top"></div><div class="inlay bottom"></div>';
+        } else {
+          c.classList.add('single');
+          c.innerHTML = '<div class="inlay"></div>';
+        }
+      }
+      const marker = document.createElement('div');
+      marker.className = 'note-marker';
+      if(scalePcs.has(pc)) marker.classList.add('scale');
+      if(chordPcs.has(pc)) marker.classList.add('chord');
+      if(pc === rootPc) marker.classList.add('root');
+      if(selectedPc === pc) marker.classList.add('selected-note');
+      if(disableOut && !scalePcs.has(pc)) marker.style.opacity = '.22';
+      marker.dataset.midi = String(midi);
+      marker.innerHTML = '<span class="name">' + labels[pc] + '</span><span class="oct">' + (Math.floor(midi / 12) - 1) + '</span>';
+      marker.addEventListener('click', () => {
+        if(disableOut && !scalePcs.has(pc)) return;
+        syncSelectedPc(pc);
+        playMidi(midi, 0, .85, instrument);
+        flashKey(midi);
+        renderAll();
+      });
+      c.appendChild(marker);
+      row.appendChild(c);
+    }
+    const tail = document.createElement('div');
+    tail.className = 'fret-cell tail';
+    row.appendChild(tail);
+    board.appendChild(row);
+  });
+}
+
+function isBlackPc(pc){ return [1,3,6,8,10].includes(pc); }
+function buildScaleSheetData(state){
+  const triads = state.scaleNotes.map((_, i) => buildChord(state.scaleNotes, i, 3));
+  return {
+    degrees: ['1','2','3','4','5','6','7','8'],
+    scaleNames: [...state.scaleNotes.map(n => n.name), state.scaleNotes[0].name],
+    romans: triads.map(ch => ch.roman.replace(/(maj7|7|ø7|°7|maj7#5|7#5)$/,'')),
+    chords: triads.map(ch => ch.chordName),
+    noteRows: [0,1,2].map(r => triads.map(ch => ch.tones[r].name))
+  };
+}
+function renderScaleSheet(state){
+  const data = buildScaleSheetData(state);
+  el('sheetKeyText').textContent = state.key;
+  const top = el('scaleSheetTop');
+  top.innerHTML = '<tr><td class="vscale" rowspan="2">SCALE</td>' + data.degrees.map((d,i)=>'<td class="num'+(i%2===1?' alt':'')+'">'+d+'</td>').join('') + '</tr>' +
+                  '<tr>' + data.scaleNames.map(n=>'<td class="note">'+n+'</td>').join('') + '</tr>';
+  const holder = el('scaleChordSheet');
+  holder.innerHTML = '<div class="chord-left"><div class="chord-label">Chords</div><div class="notes-vert">NOTES</div></div>' +
+    '<table class="chord-sheet-table"><tbody>' +
+    '<tr>' + data.romans.map(r=>'<td class="roman">'+r+'</td>').join('') + '</tr>' +
+    '<tr>' + data.chords.map(c=>'<td class="chname">'+c+'</td>').join('') + '</tr>' +
+    data.noteRows.map(row=>'<tr>'+row.map(n=>'<td class="nt">'+n+'</td>').join('')+'</tr>').join('') +
+    '</tbody></table>';
+  renderPrintableKeyboard(state, el('scalePrintKeyboard'));
+}
+function renderPrintableKeyboard(state, svg){
+  const NS='http://www.w3.org/2000/svg';
+  svg.innerHTML='';
+  const startMidi = midiForPcNearest(state.scaleNotes[0].pc, 48);
+  const whiteW=56, whiteH=250, blackW=34, blackH=160, marginX=20, topY=28;
+  const totalWhites=13;
+  svg.setAttribute('viewBox', `0 0 ${marginX*2 + whiteW*totalWhites} 330`);
+  svg.setAttribute('width', String(marginX*2 + whiteW*totalWhites));
+  const scalePcs = new Set(state.scaleNotes.map(n=>n.pc));
+  const whitePcs=[0,2,4,5,7,9,11];
+  let midi = startMidi;
+  while(isBlackPc(midi%12)) midi++;
+  const whiteMidis=[];
+  while(whiteMidis.length < totalWhites){ if(whitePcs.includes(midi%12)) whiteMidis.push(midi); midi++; }
+  const g=document.createElementNS(NS,'g'); svg.appendChild(g);
+  whiteMidis.forEach((m,i)=>{
+    const x=marginX+i*whiteW, pc=m%12;
+    const r=document.createElementNS(NS,'rect'); r.setAttribute('x',x); r.setAttribute('y',topY); r.setAttribute('width',whiteW); r.setAttribute('height',whiteH); r.setAttribute('fill', scalePcs.has(pc)?'#eba9c1':'#d3d3d3'); r.setAttribute('stroke','#111'); r.setAttribute('stroke-width','3'); g.appendChild(r);
+    const num=document.createElementNS(NS,'text'); num.setAttribute('x',x+whiteW/2); num.setAttribute('y',18); num.setAttribute('font-size','20'); num.setAttribute('font-weight','700'); num.setAttribute('text-anchor','middle'); num.textContent=String(i+1); g.appendChild(num);
+    const name=document.createElementNS(NS,'text'); name.setAttribute('x',x+whiteW/2); name.setAttribute('y',whiteH+topY-10); name.setAttribute('font-size','18'); name.setAttribute('font-weight','700'); name.setAttribute('text-anchor','middle'); name.textContent=state.chromaticLabels[pc]; g.appendChild(name);
+  });
+  whiteMidis.forEach((m,i)=>{
+    const pc=m%12;
+    if([0,2,5,7,9].includes(pc) && i < whiteMidis.length-1){
+      const x=marginX+(i+1)*whiteW - blackW/2;
+      const r=document.createElementNS(NS,'rect'); r.setAttribute('x',x); r.setAttribute('y',topY); r.setAttribute('width',blackW); r.setAttribute('height',blackH); r.setAttribute('fill','#000'); r.setAttribute('stroke','#111'); r.setAttribute('stroke-width','2'); g.appendChild(r);
+    }
+  });
+}
+function miniKeyboardSvg(chord, inversionIndex, rowFill){
+  const voiced = applyInversion(chord, inversionIndex);
+  const firstPc = voiced[0].pc;
+  let startMidi = midiForPcNearest(firstPc, 60);
+  while(isBlackPc(startMidi % 12)) startMidi--;
+
+  const whiteCount = 8;
+  const vbW = 300, vbH = 120;
+  const whiteW = vbW / whiteCount;
+  const whiteH = 96;
+  const blackW = 21;
+  const blackH = 60;
+  const topY = 0;
+  const left = 0;
+
+  const whiteMidis = [];
+  let m = startMidi;
+  while(whiteMidis.length < whiteCount){
+    if(!isBlackPc(m % 12)) whiteMidis.push(m);
+    m++;
+  }
+
+  let svg = `<svg class="mini-svg" viewBox="0 0 ${vbW} ${vbH}" preserveAspectRatio="none">`;
+  whiteMidis.forEach((midi, i) => {
+    svg += `<rect x="${left + i * whiteW}" y="${topY}" width="${whiteW}" height="${whiteH}" fill="${rowFill}" stroke="#111" stroke-width="2"/>`;
+  });
+  whiteMidis.forEach((midi, i) => {
+    const pc = midi % 12;
+    if([0,2,5,7,9].includes(pc) && i < whiteMidis.length - 1){
+      const x = left + (i + 1) * whiteW - blackW / 2;
+      svg += `<rect x="${x}" y="${topY}" width="${blackW}" height="${blackH}" fill="#000"/>`;
+    }
+  });
+
+  const displayMidis = [];
+  let prev = startMidi - 1;
+  voiced.forEach((t, idx) => {
+    let midi = midiForPcNearest(t.pc, idx === 0 ? startMidi : prev + 1);
+    while(midi <= prev) midi += 12;
+    displayMidis.push(midi);
+    prev = midi;
+  });
+
+  displayMidis.forEach((midi, idx) => {
+    const name = voiced[idx].name;
+    let x;
+    const pc = midi % 12;
+    if(isBlackPc(pc)){
+      let rightIndex = 0;
+      while(rightIndex < whiteMidis.length && whiteMidis[rightIndex] < midi) rightIndex++;
+      rightIndex = Math.max(1, Math.min(rightIndex, whiteMidis.length - 1));
+      x = left + rightIndex * whiteW - blackW / 2;
+    } else {
+      let wi = whiteMidis.findIndex(w => w === midi);
+      if(wi < 0){
+        wi = 0;
+        while(wi < whiteMidis.length - 1 && whiteMidis[wi] < midi) wi++;
+      }
+      x = left + wi * whiteW + whiteW / 2;
+    }
+    svg += `<circle cx="${x}" cy="70" r="4.6" fill="#000"/>`;
+    svg += `<rect x="${x-14}" y="95" width="28" height="18" fill="#0f4f90"/>`;
+    svg += `<text x="${x}" y="108" fill="#fff" font-size="13" text-anchor="middle" font-weight="700">${name}</text>`;
+  });
+
+  svg += `</svg>`;
+  return svg;
+}
+function renderInversionSheet(state){
+  el('invSheetKeyText').textContent = state.key;
+  const body = el('invSheetBody');
+  const rowFills = ['#f2f1cf','#f3f3f3','#f2f1cf','#f3f3f3','#f2f1cf','#f3f3f3','#f2f1cf'];
+  body.innerHTML = state.scaleNotes.map((n,i)=>{
+    const triad = buildChord(state.scaleNotes, i, 3);
+    const fill = rowFills[i % rowFills.length];
+    return `<tr><td class="degree-cell"><div class="deg-badge">${i+1}</div></td>` + [0,1,2].map(inv=>{
+      const cls = fill === '#f3f3f3' ? 'gray' : '';
+      return `<td class="mini-cell"><div class="mini-cell-wrap ${cls}"><div class="mini-caption">${triad.chordName}</div>${miniKeyboardSvg(triad, inv, fill)}</div></td>`;
+    }).join('') + `</tr>`;
+  }).join('');
+}
+
+function fitSheetPreview(pageId){
+  const page = document.getElementById(pageId);
+  if(!page) return;
+  const wrap = page.parentElement;
+  if(!wrap) return;
+
+  const widthInput = pageId === 'inversionSheetPage' ? el('invSheetWidth') : el('scaleSheetWidth');
+  const heightInput = pageId === 'inversionSheetPage' ? el('invSheetHeight') : el('scaleSheetHeight');
+  const naturalW = Number(widthInput?.value || 816);
+  const naturalH = Number(heightInput?.value || 1056);
+
+  page.classList.add('preview-fit');
+  page.style.transform = 'scale(1)';
+  page.style.margin = '0 auto';
+  page.style.width = naturalW + 'px';
+  page.style.minHeight = naturalH + 'px';
+  page.style.setProperty('--sheet-width', naturalW);
+  page.style.setProperty('--sheet-height', naturalH);
+
+  const availableW = Math.max(300, wrap.clientWidth - 6);
+  const top = wrap.getBoundingClientRect().top;
+  const viewportH = window.innerHeight || document.documentElement.clientHeight || naturalH;
+  const availableH = Math.max(360, viewportH - top - 8);
+
+  const scale = Math.min(1, availableW / naturalW, availableH / naturalH);
+  page.style.transform = `scale(${scale})`;
+  wrap.style.minHeight = Math.ceil(naturalH * scale + 4) + 'px';
+}
+function fitSheetPreviews(){
+  fitSheetPreview('scaleSheetPage');
+  fitSheetPreview('inversionSheetPage');
+}
+function setupSheetKeyPop(triggerId, popId){
+  const trigger = el(triggerId), pop = el(popId);
+  if(!trigger || !pop) return;
+  trigger.addEventListener('click', (ev) => { ev.stopPropagation(); pop.classList.toggle('show'); });
+  pop.addEventListener('click', (ev) => ev.stopPropagation());
+}
+document.addEventListener('click', () => { ['scaleKeyPop','invKeyPop'].forEach(id => { const n = el(id); if(n) n.classList.remove('show'); }); });
+setupSheetKeyPop('scaleKeyTrigger','scaleKeyPop');
+setupSheetKeyPop('invKeyTrigger','invKeyPop');
+function renderAll(){
+  const state = currentState();
+  if(selectedPc === null) selectedPc = state.scaleNotes[0].pc;
+  renderScaleStrip(state);
+  renderChordTable(state);
+  renderChordDetail(state);
+  renderInversionTables(state);
+  renderKeyboard(state, {target:'keyboard'});
+  renderFretboard(state, {target:'fretboard'});
+  scaleViewKeySelect.value = keySelect.value;
+  invViewKeySelect.value = keySelect.value;
+  scaleViewScaleSelect.value = scaleSelect.value;
+  invViewScaleSelect.value = scaleSelect.value;
+  const scaleViewState = currentScaleViewState();
+  renderScaleSheet(scaleViewState);
+  const invState = currentInvViewState();
+  renderInversionSheet(invState);
+  requestAnimationFrame(fitSheetPreviews);
+}
+window.addEventListener('resize', fitSheetPreviews);
+
+keySelect.addEventListener('change', () => { scaleViewKeySelect.value = keySelect.value; invViewKeySelect.value = keySelect.value; repopulateDegreeSelect(); renderAll(); });
+scaleViewKeySelect.addEventListener('change', () => { keySelect.value = scaleViewKeySelect.value; invViewKeySelect.value = scaleViewKeySelect.value; repopulateDegreeSelect(); renderAll(); });
+invViewKeySelect.addEventListener('change', () => { keySelect.value = invViewKeySelect.value; scaleViewKeySelect.value = invViewKeySelect.value; repopulateDegreeSelect(); renderAll(); });
+scaleSelect.addEventListener('change', () => { scaleViewScaleSelect.value = scaleSelect.value; invViewScaleSelect.value = scaleSelect.value; repopulateDegreeSelect(); renderAll(); });
+scaleViewScaleSelect.addEventListener('change', () => { scaleSelect.value = scaleViewScaleSelect.value; invViewScaleSelect.value = scaleViewScaleSelect.value; repopulateDegreeSelect(); renderAll(); });
+invViewScaleSelect.addEventListener('change', () => { scaleSelect.value = invViewScaleSelect.value; scaleViewScaleSelect.value = invViewScaleSelect.value; repopulateDegreeSelect(); renderAll(); });
+degreeSelect.addEventListener('change', renderAll);
+stackSelect.addEventListener('change', () => { repopulateInversionSelect(); renderAll(); });
+inversionSelect.addEventListener('change', renderAll);
+if(allowChromaticToggle) allowChromaticToggle.addEventListener('change', renderAll);
+tabFullBtn.addEventListener('click', () => setPage('full'));
+tabScaleBtn.addEventListener('click', () => setPage('scale'));
+tabInvBtn.addEventListener('click', () => setPage('inversions'));
+printBtn.addEventListener('click', () => window.print());
+
+el('playChordBtn').addEventListener('click', () => {
+  const state = currentState();
+  const voiced = applyInversion(state.chord, state.inversion);
+  const midis = buildVoicedMidi(voiced, 55 + state.degreeIndex);
+  playSequence(midis, .16, .85, 'piano');
+});
+el('playScaleBtn').addEventListener('click', () => {
+  const state = currentState();
+  const midis = state.scaleNotes.map(n => midiForPcNearest(n.pc, 60)).sort((a,b) => a - b);
+  if(midis.length){
+    while(midis[0] < 60) midis[0] += 12;
+    for(let i=1;i<midis.length;i++) while(midis[i] <= midis[i-1]) midis[i] += 12;
+    midis.push(midis[0] + 12);
+  }
+  playSequence(midis, .22, .75, 'piano');
+});
+
+['scaleSheetWidth','scaleSheetHeight','invSheetWidth','invSheetHeight'].forEach(id => {
+  const node = el(id);
+  if(node) node.addEventListener('input', fitSheetPreviews);
+});
+
+repopulateDegreeSelect();
+repopulateInversionSelect();
+renderAll();
+isBooting = false;
+</script>
+
+</body>
+</html>
